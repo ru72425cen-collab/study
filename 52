@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>88天學測衝刺計畫</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #FAF8F5;
+      color: #3E3835;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .k-card {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(230, 224, 217, 0.7);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-28 pt-4 px-4 select-none">
+
+  <!-- 頂部資訊與倒數卡片 -->
+  <div class="max-w-md mx-auto space-y-4">
+    <div class="k-card rounded-3xl p-5 shadow-sm text-center relative overflow-hidden">
+      <div class="flex justify-between items-center mb-2 text-xs font-semibold tracking-wider text-stone-500">
+        <span id="current-phase-tag" class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full">第一階段：單元紮根</span>
+        <span id="date-display" class="text-stone-400">Day 87</span>
+      </div>
+
+      <div class="py-2 flex items-center justify-center space-x-4">
+        <button onclick="changeDay(1)" class="w-8 h-8 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center active:scale-95 text-lg font-bold" title="看上一天">‹</button>
+        <div>
+          <div class="text-xs text-stone-400 font-medium flex items-center justify-center gap-1">
+            <span>距離學測倒數</span>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" title="已開啟午夜0:00自動計算"></span>
+          </div>
+          <div class="text-5xl font-black tracking-tight text-stone-800 mt-0.5"><span id="days-left">87</span> <span class="text-base font-medium text-stone-500">天</span></div>
+        </div>
+        <button onclick="changeDay(-1)" class="w-8 h-8 rounded-full bg-stone-100 text-stone-600 flex items-center justify-center active:scale-95 text-lg font-bold" title="看下一天">›</button>
+      </div>
+
+      <!-- 今日完成率進度條 -->
+      <div class="mt-4">
+        <div class="flex justify-between text-xs mb-1 font-medium">
+          <span class="text-stone-500">今日完成率</span>
+          <span id="progress-percent" class="text-amber-800 font-bold">0%</span>
+        </div>
+        <div class="w-full bg-stone-200/60 rounded-full h-2.5 overflow-hidden">
+          <div id="progress-bar" class="bg-amber-700/80 h-2.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+      </div>
+
+      <!-- 快速功能開關 -->
+      <div class="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-stone-100 text-xs">
+        <button onclick="toggleLowEnergy()" id="low-energy-btn" class="py-2 px-3 rounded-xl border border-stone-200 bg-white text-stone-600 flex items-center justify-center gap-1.5 transition-all">
+          <span>🌿</span> <span id="low-energy-text">低能量保底：關</span>
+        </button>
+        <button onclick="openRescueModal()" class="py-2 px-3 rounded-xl border border-stone-200 bg-white text-stone-600 flex items-center justify-center gap-1.5 active:bg-stone-50">
+          <span>🔄</span> <span>落後智慧補救</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 啟動阻力微儀式 (防滑手機) -->
+    <div class="k-card rounded-2xl p-4 shadow-sm border-l-4 border-l-amber-600 flex items-center justify-between">
+      <div class="pr-2">
+        <div class="text-xs font-bold text-amber-900">✨ 5分鐘起跑微儀式</div>
+        <div class="text-[11px] text-stone-500 mt-0.5">收好手機、深呼吸三次、翻開講義讀第一題。</div>
+      </div>
+      <button onclick="startFocusTimer(25)" class="text-xs bg-amber-800 text-white font-medium px-3.5 py-2 rounded-xl whitespace-nowrap active:scale-95 shadow-sm">
+        開始專注
+      </button>
+    </div>
+
+    <!-- 任務清單切換標籤 -->
+    <div class="flex items-center justify-between px-1">
+      <h2 class="text-sm font-bold text-stone-700 flex items-center gap-1.5">
+        <span>📋</span> 今日具體排程任務
+      </h2>
+      <span id="task-count-summary" class="text-xs text-stone-400">0 / 0 已完成</span>
+    </div>
+
+    <!-- 每日任務清單 -->
+    <div id="task-list" class="space-y-2.5"></div>
+
+    <!-- 弱點警告卡片（同一單元錯題>=2次時自動跳出） -->
+    <div id="weakness-alert" class="hidden k-card rounded-2xl p-4 border border-rose-200 bg-rose-50/60">
+      <div class="flex items-start gap-2.5">
+        <span class="text-lg">⚠️</span>
+        <div>
+          <div class="text-xs font-bold text-rose-800">盲點警示：單元重複出錯</div>
+          <div id="weakness-text" class="text-xs text-rose-700 mt-1">偵測到部分單元累積 2 次以上錯題，建議今日抽 2 小時回翻課本/講義重讀定義。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 心態小卡 -->
+    <div class="k-card rounded-2xl p-4 text-center">
+      <p class="text-xs text-stone-600 leading-relaxed italic">
+        「閉上眼想像自己走出考場滿是後悔，祈求重來一次——睜開眼，這倒數的每一天就是你的重來機會。不慌、不比，弄懂觀念、吃好睡好，分數一定會給妳回報！」
+      </p>
+    </div>
+  </div>
+
+  <!-- 底部導覽列 -->
+  <div class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-stone-200/80 px-6 py-2.5 flex justify-between items-center text-xs text-stone-500 z-40">
+    <button onclick="switchTab('today')" id="tab-today" class="flex flex-col items-center font-bold text-amber-800">
+      <span class="text-lg">📅</span>
+      <span>今日任務</span>
+    </button>
+    <button onclick="switchTab('schedule')" id="tab-schedule" class="flex flex-col items-center">
+      <span class="text-lg">⏰</span>
+      <span>高頻作息</span>
+    </button>
+    <button onclick="switchTab('errors')" id="tab-errors" class="flex flex-col items-center">
+      <span class="text-lg">📖</span>
+      <span>錯題本</span>
+    </button>
+    <button onclick="switchTab('settings')" id="tab-settings" class="flex flex-col items-center">
+      <span class="text-lg">⚙️</span>
+      <span>目標天數</span>
+    </button>
+  </div>
+
+  <!-- 作息彈窗 Modal -->
+  <div id="schedule-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center p-3">
+    <div class="bg-white rounded-3xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sm text-stone-800">⏰ 高效率作息參考表</h3>
+        <button onclick="closeModal('schedule-modal')" class="text-stone-400 font-bold px-2 text-lg">✕</button>
+      </div>
+      <div class="space-y-3 text-xs leading-relaxed text-stone-600">
+        <div class="bg-amber-50/70 p-3 rounded-2xl border border-amber-100">
+          <div class="font-bold text-amber-900 mb-1">【週末三段高密度攻堅 (7-12 / 13-18 / 19-22)】</div>
+          <div>• 07:00 - 12:00：單字30-50個 ➔ 數學觀念/歷屆 ➔ 自然(物/化)計算</div>
+          <div>• 13:00 - 18:00：自然(生/地)整理筆記 ➔ 國英綜合/混合題</div>
+          <div>• 19:00 - 22:00：全科錯題深究、回查課本 ➔ 23:00準時就寢</div>
+        </div>
+        <div class="bg-stone-50 p-3 rounded-2xl border border-stone-200">
+          <div class="font-bold text-stone-800 mb-1">【平日晚自習區塊】</div>
+          <div>• 18:30 - 20:00：數自弱科突圍單元</div>
+          <div>• 20:10 - 21:30：古文/題組 + 英文閱讀與單字</div>
+          <div>• 21:30 - 22:30：今日錯題歸納，不熬夜！</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 錯題本彈窗 Modal -->
+  <div id="errors-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center p-3">
+    <div class="bg-white rounded-3xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sm text-stone-800">📖 錯題與盲點回溯登記</h3>
+        <button onclick="closeModal('errors-modal')" class="text-stone-400 font-bold px-2 text-lg">✕</button>
+      </div>
+      <div class="space-y-2 text-xs">
+        <input id="err-subject" placeholder="科目 (如: 數學A / 地科)" class="w-full p-2.5 rounded-xl border border-stone-200">
+        <input id="err-unit" placeholder="具體單元 (如: 條件機率 / 大氣垂直分層)" class="w-full p-2.5 rounded-xl border border-stone-200">
+        <textarea id="err-note" rows="2" placeholder="考了什麼觀念？當下為什麼沒想到？正解思路是什麼？（猜對也算）" class="w-full p-2.5 rounded-xl border border-stone-200"></textarea>
+        <button onclick="saveErrorRecord()" class="w-full py-2.5 bg-amber-800 text-white rounded-xl font-bold">登記錯題</button>
+      </div>
+      <div class="pt-2">
+        <div class="font-bold text-xs text-stone-700 mb-2">已登記錯題庫（同單元累積兩次自動警示）</div>
+        <div id="error-records-list" class="space-y-2 text-xs"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 設定與目標日 Modal -->
+  <div id="settings-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-end justify-center p-3">
+    <div class="bg-white rounded-3xl w-full max-w-md max-h-[85vh] overflow-y-auto p-5 space-y-4 text-xs">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-sm text-stone-800">⚙️ 學測目標日期與資料設定</h3>
+        <button onclick="closeModal('settings-modal')" class="text-stone-400 font-bold px-2 text-lg">✕</button>
+      </div>
+      <div>
+        <label class="block text-stone-600 mb-1 font-semibold">自訂學測第一天日期（午夜0:00自動計算倒數）：</label>
+        <input type="date" id="target-exam-date" class="w-full p-2.5 rounded-xl border border-stone-200 bg-stone-50" onchange="updateExamDate(this.value)">
+      </div>
+      <div class="text-stone-500 leading-relaxed pt-1">
+        • 系統以您設定的學測日為準，每天只要過凌晨 0:00，開啟網頁便會自動更新為最新倒數天數並切換該日任務。
+      </div>
+      <div class="space-y-2 pt-3 border-t">
+        <button onclick="exportData()" class="w-full py-2.5 bg-stone-800 text-white rounded-xl font-bold">匯出備份 JSON 文字</button>
+        <button onclick="importDataPrompt()" class="w-full py-2.5 border border-stone-300 text-stone-700 rounded-xl font-bold">匯入還原備份</button>
+        <button onclick="resetTodayTasks()" class="w-full py-2.5 border border-rose-300 text-rose-700 rounded-xl">清空今日所有勾選狀態</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 落後補救 Modal -->
+  <div id="rescue-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl w-full max-w-sm p-5 space-y-3 text-xs">
+      <h3 class="font-bold text-sm text-stone-800">🔄 落後任務智慧重排</h3>
+      <p class="text-stone-600 leading-relaxed">
+        檢測到今天尚未完成的任務。點擊下方按鈕，系統將自動將落後項目順延至明天或週末補救時段，絕不讓進度壓垮自己！
+      </p>
+      <div class="flex gap-2 pt-2">
+        <button onclick="closeModal('rescue-modal')" class="flex-1 py-2 border rounded-xl">先自己補完</button>
+        <button onclick="applyRescue()" class="flex-1 py-2 bg-amber-800 text-white rounded-xl font-bold">全部順延明日</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const CLASSIC_15 = [
+      "燭之武退秦師", "諫逐客書", "大同與小康", "鴻門宴", "出師表",
+      "桃花源記", "師說", "虬髯客傳", "赤壁賦", "項脊軒志",
+      "晚遊六橋待月記", "勞山道士", "勸和論", "鹿港乘桴記", "畫菊自序"
+    ];
+
+    // 預設以今天算起 87 天後的午夜為學測目標日
+    function getDefaultTargetDate() {
+      const now = new Date();
+      now.setHours(0,0,0,0);
+      const target = new Date(now.getTime() + 87 * 24 * 60 * 60 * 1000);
+      return target.toISOString().split('T')[0];
+    }
+
+    let targetDateStr = localStorage.getItem('study_target_date') || getDefaultTargetDate();
+
+    // 計算當前真實日期的倒數天數
+    function getAutoDaysLeft() {
+      const now = new Date();
+      now.setHours(0, 0, 0, 0);
+      const target = new Date(targetDateStr);
+      target.setHours(0, 0, 0, 0);
+      const diffTime = target - now;
+      const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return Math.max(0, days);
+    }
+
+    let currentDay = getAutoDaysLeft();
+    let isLowEnergy = false;
+    let taskCompletions = JSON.parse(localStorage.getItem('study_completions') || '{}');
+    let errorRecords = JSON.parse(localStorage.getItem('study_errors') || '[]');
+    let rescuedTasks = JSON.parse(localStorage.getItem('study_rescued') || '{}');
+
+    function updateExamDate(newDate) {
+      if (!newDate) return;
+      targetDateStr = newDate;
+      localStorage.setItem('study_target_date', targetDateStr);
+      currentDay = getAutoDaysLeft();
+      renderTasks();
+    }
+
+    // 核心任務庫
+    function getTasksForDay(day) {
+      let tasks = [];
+      const dayIndex = Math.max(0, 87 - day);
+
+      if (day >= 60) {
+        // 第一階段 (87～60天)
+        const articleIndex = Math.floor(dayIndex / 2) % 15;
+        tasks.push({
+          id: `chi_${day}`, subject: "國文", core: true,
+          title: `古文十五篇精讀：《${CLASSIC_15[articleIndex]}》`,
+          detail: "字詞義、主旨、常見修辭與重要文句默想"
+        });
+        if (dayIndex % 7 === 5 || dayIndex % 7 === 6) {
+          tasks.push({
+            id: `chi_week_${day}`, subject: "國文", core: false,
+            title: "國文週計畫：混合題型 1 篇",
+            detail: "計時作答，訓練非選擇題手寫關鍵字精準度"
+          });
+        }
+
+        tasks.push({
+          id: `eng_words_${day}`, subject: "英文", core: true,
+          title: "核心單字複習：108 個單字",
+          detail: "遮住中文快速掃過，不熟的打星號回刷"
+        });
+        tasks.push({
+          id: `eng_235_${day}`, subject: "英文", core: false,
+          title: "235 模擬考半單元 + 倒數30天 1 篇",
+          detail: "掌握篇章結構與克漏字題型邏輯"
+        });
+        if (dayIndex % 7 === 2 || dayIndex % 7 === 6) {
+          tasks.push({
+            id: `eng_essay_${day}`, subject: "英文", core: false,
+            title: "英文作文 1 篇 + 翻譯 1 篇",
+            detail: "套用萬用句型，訂正文法時態與搭配詞錯誤"
+          });
+        }
+
+        const mathUnitStart = ((dayIndex * 3) % 66) + 1;
+        tasks.push({
+          id: `math_quick_${day}`, subject: "數學", core: true,
+          title: `南一學測快攻330：單元 ${mathUnitStart} ～ ${mathUnitStart + 2}`,
+          detail: "範例必算，公式推導弄懂，禁止硬背解法"
+        });
+        tasks.push({
+          id: `math_concept_${day}`, subject: "數學", core: false,
+          title: "數學觀念重讀 + 對話式基本題補充",
+          detail: "挑今日最卡題目，回對話式/課本重讀定義"
+        });
+        if (dayIndex % 2 === 0) {
+          tasks.push({
+            id: `math_plan_${day}`, subject: "數學", core: false,
+            title: "數學週計畫：進度題本 1 回",
+            detail: "計時作答並當場將錯題入冊"
+          });
+        }
+
+        tasks.push({
+          id: `sci_earth_${day}`, subject: "地科", core: true,
+          title: "地科週計畫：精實刷題 1 回",
+          detail: "大氣垂直分層、板塊邊界、天文圖表務必查講義搞清"
+        });
+
+        if (dayIndex % 2 === 0) {
+          tasks.push({
+            id: `sci_phy_${day}`, subject: "物理", core: false,
+            title: "物理週計畫 1 回 + 錯題回翻講義",
+            detail: "力學/運動學/能量守恆基本公式應用"
+          });
+        } else {
+          tasks.push({
+            id: `sci_chem_${day}`, subject: "化學", core: false,
+            title: "化學週計畫 1 回 + 整理定義錯題",
+            detail: "化學計量、溶液濃度與原子結構定義搞清"
+          });
+        }
+
+        if (dayIndex % 2 === 1) {
+          tasks.push({
+            id: `sci_bio_${day}`, subject: "生物", core: false,
+            title: "生物週計畫 1 回 + 細胞/遺傳圖表整理",
+            detail: "專注機制流程圖理解，不做死背"
+          });
+        }
+
+        if (dayIndex % 7 === 0) {
+          tasks.push({
+            id: `sci_mock_${day}`, subject: "自然", core: true,
+            title: "自然科整份歷屆/模考 1 回",
+            detail: "計時完整作答，統計哪一科丟分最多"
+          });
+        }
+
+      } else if (day >= 25) {
+        // 第二階段 (59～25天)
+        const year = 108 + (dayIndex % 7);
+        tasks.push({
+          id: `exam_timed_${day}`, subject: "實戰", core: true,
+          title: `計時模考/歷屆：${year} 年學測或優質全模/北模`,
+          detail: "嚴格照大考時間計時，中途不翻書、不看詳解"
+        });
+        tasks.push({
+          id: `exam_correct_${day}`, subject: "錯題", core: true,
+          title: "深究錯題本：猜對的當作錯題整理",
+          detail: "寫出「考了什麼觀念、為什麼沒想到、正解思路」"
+        });
+        tasks.push({
+          id: `exam_leak_${day}`, subject: "動態補漏", core: false,
+          title: "弱點回溯 2 小時：重讀本週重複出錯單元",
+          detail: "翻開複習講義把該單元重新讀透、重推公式"
+        });
+        tasks.push({
+          id: `exam_lang_${day}`, subject: "國英手感", core: false,
+          title: "國英手感維持：混合題組 1 篇 + 英文單字",
+          detail: "維持大腦閱讀長篇文本的反應速度"
+        });
+
+      } else if (day >= 7) {
+        // 第三階段 (24～7天)
+        tasks.push({
+          id: `review_error_${day}`, subject: "錯題本", core: true,
+          title: "狂翻錯題本：遮住答案重算關鍵錯題",
+          detail: "不再盲目寫新題，確認所有曾錯觀念皆融會貫通"
+        });
+        tasks.push({
+          id: `review_handbook_${day}`, subject: "講義", core: true,
+          title: "把複習講義翻爛：地科/生物/物理重點圖表",
+          detail: "快速掃過重點填字與易混淆名詞比較"
+        });
+        tasks.push({
+          id: `review_exam_${day}`, subject: "歷屆", core: false,
+          title: "近 3 年學測歷屆經典題型再次確認",
+          detail: "掌握大考教授最愛出的基本盤題型"
+        });
+        tasks.push({
+          id: `review_essay_${day}`, subject: "作文", core: false,
+          title: "國英文作文精選萬用佳句與模板覆盤",
+          detail: "回顧自己寫過的好句子，穩定考試發揮"
+        });
+
+      } else {
+        // 最後 7 天至考前
+        tasks.push({
+          id: `final_clock_${day}`, subject: "生理時鐘", core: true,
+          title: "大考時間完全對齊：早上 06:30 起床",
+          detail: "按大考各科作息時間動腦與複習"
+        });
+        tasks.push({
+          id: `final_formula_${day}`, subject: "核心公式", core: true,
+          title: "翻閱錯題本核心盲點與數自易錯公式",
+          detail: "只看自己整理的精華，不碰任何沒見過的新怪題"
+        });
+        tasks.push({
+          id: `final_mind_${day}`, subject: "心態", core: true,
+          title: "清淡飲食、拉筋散步、22:30 前熄燈就寢",
+          detail: "妳已經做足準備，穩住節奏就能拿到應得的分數！"
+        });
+      }
+
+      // 昨日順延任務
+      const rescues = rescuedTasks[day] || [];
+      rescues.forEach(r => {
+        tasks.push({
+          id: `rescued_${r.id}`,
+          subject: `補救 · ${r.subject}`,
+          core: false,
+          title: `[順延] ${r.title}`,
+          detail: r.detail
+        });
+      });
+
+      return tasks;
+    }
+
+    function renderTasks() {
+      document.getElementById('days-left').innerText = currentDay;
+      document.getElementById('date-display').innerText = `倒數 Day ${currentDay}`;
+
+      const container = document.getElementById('task-list');
+      container.innerHTML = '';
+      let tasks = getTasksForDay(currentDay);
+
+      if (isLowEnergy) {
+        tasks = tasks.filter(t => t.core);
+      }
+
+      const dayCompletions = taskCompletions[currentDay] || {};
+      let completedCount = 0;
+
+      tasks.forEach(task => {
+        const isDone = !!dayCompletions[task.id];
+        if (isDone) completedCount++;
+
+        const card = document.createElement('div');
+        card.className = `k-card rounded-2xl p-4 transition-all duration-200 border ${
+          isDone ? 'bg-stone-100/70 border-stone-200 opacity-60' : 'border-stone-200/80 shadow-sm'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-start gap-3">
+            <button onclick="toggleTask('${task.id}')" class="mt-0.5 w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
+              isDone ? 'bg-amber-800 border-amber-800 text-white' : 'border-stone-300 bg-white'
+            }">
+              ${isDone ? '✓' : ''}
+            </button>
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  task.subject.includes('數') ? 'bg-blue-50 text-blue-800' :
+                  task.subject.includes('國') ? 'bg-red-50 text-red-800' :
+                  task.subject.includes('英') ? 'bg-purple-50 text-purple-800' :
+                  'bg-emerald-50 text-emerald-800'
+                }">${task.subject}</span>
+                <span class="text-xs font-bold text-stone-800 ${isDone ? 'line-through text-stone-400' : ''}">${task.title}</span>
+              </div>
+              <div class="text-[11px] text-stone-500 mt-1.5 leading-relaxed">${task.detail}</div>
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      const total = tasks.length;
+      const percent = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+      document.getElementById('progress-bar').style.width = `${percent}%`;
+      document.getElementById('progress-percent').innerText = `${percent}%`;
+      document.getElementById('task-count-summary').innerText = `${completedCount} / ${total} 已完成`;
+
+      updatePhaseHeader();
+      checkWeaknesses();
+    }
+
+    function toggleTask(taskId) {
+      if (!taskCompletions[currentDay]) taskCompletions[currentDay] = {};
+      taskCompletions[currentDay][taskId] = !taskCompletions[currentDay][taskId];
+      localStorage.setItem('study_completions', JSON.stringify(taskCompletions));
+      renderTasks();
+    }
+
+    function changeDay(delta) {
+      const next = currentDay + delta;
+      if (next >= 0 && next <= 120) {
+        currentDay = next;
+        renderTasks();
+      }
+    }
+
+    function updatePhaseHeader() {
+      const tag = document.getElementById('current-phase-tag');
+      if (currentDay >= 60) {
+        tag.innerText = "第一階段：單元紮根 (快攻330+古文+地科天天刷)";
+        tag.className = "bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-xs font-semibold";
+      } else if (currentDay >= 25) {
+        tag.innerText = "第二階段：歷屆模考實戰 (計時+盲點補漏)";
+        tag.className = "bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-xs font-semibold";
+      } else if (currentDay >= 7) {
+        tag.innerText = "第三階段：狂翻錯題本 (講義翻爛+重點筆記)";
+        tag.className = "bg-rose-100 text-rose-800 px-2.5 py-1 rounded-full text-xs font-semibold";
+      } else {
+        tag.innerText = "最後衝刺：完全對齊學測作息";
+        tag.className = "bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-full text-xs font-semibold";
+      }
+    }
+
+    function toggleLowEnergy() {
+      isLowEnergy = !isLowEnergy;
+      const btn = document.getElementById('low-energy-btn');
+      const txt = document.getElementById('low-energy-text');
+      if (isLowEnergy) {
+        btn.classList.add('bg-emerald-50', 'border-emerald-300', 'text-emerald-900');
+        txt.innerText = "低能量保底：開";
+      } else {
+        btn.classList.remove('bg-emerald-50', 'border-emerald-300', 'text-emerald-900');
+        txt.innerText = "低能量保底：關";
+      }
+      renderTasks();
+    }
+
+    function openRescueModal() {
+      document.getElementById('rescue-modal').classList.remove('hidden');
+    }
+
+    function applyRescue() {
+      const tasks = getTasksForDay(currentDay);
+      const dayCompletions = taskCompletions[currentDay] || {};
+      const unDone = tasks.filter(t => !dayCompletions[t.id]);
+
+      if (unDone.length > 0 && currentDay > 0) {
+        const nextDay = currentDay - 1;
+        if (!rescuedTasks[nextDay]) rescuedTasks[nextDay] = [];
+        rescuedTasks[nextDay].push(...unDone);
+        localStorage.setItem('study_rescued', JSON.stringify(rescuedTasks));
+      }
+      closeModal('rescue-modal');
+      renderTasks();
+      alert(`已將 ${unDone.length} 個未完成項目順延至明天！`);
+    }
+
+    function saveErrorRecord() {
+      const subject = document.getElementById('err-subject').value.trim();
+      const unit = document.getElementById('err-unit').value.trim();
+      const note = document.getElementById('err-note').value.trim();
+      if (!subject || !unit) { alert('請填寫科目與單元！'); return; }
+
+      errorRecords.unshift({ subject, unit, note, date: new Date().toLocaleDateString() });
+      localStorage.setItem('study_errors', JSON.stringify(errorRecords));
+      document.getElementById('err-subject').value = '';
+      document.getElementById('err-unit').value = '';
+      document.getElementById('err-note').value = '';
+      renderErrors();
+      checkWeaknesses();
+    }
+
+    function renderErrors() {
+      const container = document.getElementById('error-records-list');
+      container.innerHTML = '';
+      errorRecords.forEach((err) => {
+        const item = document.createElement('div');
+        item.className = "p-2.5 bg-stone-50 rounded-xl border border-stone-200";
+        item.innerHTML = `
+          <div class="flex justify-between font-bold text-stone-800">
+            <span>[${err.subject}] ${err.unit}</span>
+            <span class="text-[10px] text-stone-400 font-normal">${err.date}</span>
+          </div>
+          <div class="text-[11px] text-stone-600 mt-1">${err.note || '未記錄細節'}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function checkWeaknesses() {
+      const counts = {};
+      errorRecords.forEach(e => {
+        const key = `${e.subject} · ${e.unit}`;
+        counts[key] = (counts[key] || 0) + 1;
+      });
+      const alertBox = document.getElementById('weakness-alert');
+      const alertText = document.getElementById('weakness-text');
+
+      const frequent = Object.keys(counts).filter(k => counts[k] >= 2);
+      if (frequent.length > 0) {
+        alertBox.classList.remove('hidden');
+        alertText.innerText = `單元【${frequent.join('、')}】累積出錯 2 次以上！請立即抽 2 小時回課本重讀基礎定義！`;
+      } else {
+        alertBox.classList.add('hidden');
+      }
+    }
+
+    function startFocusTimer(mins) {
+      alert(`已啟動 ${mins} 分鐘高專注模式！\n請將 iPhone 螢幕朝下放好，開始攻克手邊講義！`);
+    }
+
+    function switchTab(tab) {
+      if (tab === 'schedule') document.getElementById('schedule-modal').classList.remove('hidden');
+      if (tab === 'errors') {
+        renderErrors();
+        document.getElementById('errors-modal').classList.remove('hidden');
+      }
+      if (tab === 'settings') {
+        document.getElementById('target-exam-date').value = targetDateStr;
+        document.getElementById('settings-modal').classList.remove('hidden');
+      }
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.add('hidden');
+    }
+
+    function exportData() {
+      const data = { taskCompletions, errorRecords, rescuedTasks, targetDateStr };
+      const str = JSON.stringify(data);
+      navigator.clipboard.writeText(str).then(() => {
+        alert('備份資料已複製到剪貼簿！');
+      }).catch(() => {
+        prompt('請手動全選複製備份代碼：', str);
+      });
+    }
+
+    function importDataPrompt() {
+      const str = prompt('請貼上備份的 JSON 代碼：');
+      if (str) {
+        try {
+          const parsed = JSON.parse(str);
+          taskCompletions = parsed.taskCompletions || {};
+          errorRecords = parsed.errorRecords || [];
+          rescuedTasks = parsed.rescuedTasks || {};
+          if (parsed.targetDateStr) targetDateStr = parsed.targetDateStr;
+          localStorage.setItem('study_completions', JSON.stringify(taskCompletions));
+          localStorage.setItem('study_errors', JSON.stringify(errorRecords));
+          localStorage.setItem('study_rescued', JSON.stringify(rescuedTasks));
+          localStorage.setItem('study_target_date', targetDateStr);
+          currentDay = getAutoDaysLeft();
+          renderTasks();
+          alert('備份還原成功！');
+          closeModal('settings-modal');
+        } catch(e) {
+          alert('代碼格式錯誤，還原失敗');
+        }
+      }
+    }
+
+    function resetTodayTasks() {
+      if (confirm('確定清空今日所有已完成勾選嗎？')) {
+        taskCompletions[currentDay] = {};
+        localStorage.setItem('study_completions', JSON.stringify(taskCompletions));
+        renderTasks();
+        closeModal('settings-modal');
+      }
+    }
+
+    // 跨日自動監聽：每分鐘檢查是否過午夜 0:00，跨日自動減天數
+    setInterval(() => {
+      const newDays = getAutoDaysLeft();
+      if (newDays !== currentDay) {
+        currentDay = newDays;
+        renderTasks();
+      }
+    }, 60000);
+
+    // 每次解鎖/切換回 Safari 時自動重新計算天數
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        const newDays = getAutoDaysLeft();
+        if (newDays !== currentDay) {
+          currentDay = newDays;
+          renderTasks();
+        }
+      }
+    });
+
+    renderTasks();
+    renderErrors();
+  </script>
+</body>
+</html>
